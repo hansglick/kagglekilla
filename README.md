@@ -1,4 +1,4 @@
-<img src="img/kagglekilla.png" width="900">
+<img src="img/kagglekillawhite.png" width="900">
 
 # Objectif
 
