@@ -557,7 +557,7 @@ def arrange_list(maliste,subs):
 
 
 
-def correct_dic_results(runid,subs,all_setting_results): 
+def correct_dic_results(runid,subs): 
     
     d = {}
     for k,v in all_setting_results[runid].items():

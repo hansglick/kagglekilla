@@ -479,3 +479,140 @@ def save_result_model_holdout(current_model,
               "* * * * * * * * * * * * * * * * * * * * * * * * * ","\n")
 
     return dicsave
+
+
+
+
+# Stacking Part
+def flatten(nested_lst):
+    """ Return a list after transforming the inner lists
+        so that it's a 1-D list.
+
+    >>> flatten([[[],["a"],"a"],[["ab"],[],"abc"]])
+    ['a', 'a', 'ab', 'abc']
+    """
+    if not isinstance(nested_lst, list):
+        return(nested_lst)
+
+    res = []
+    for l in nested_lst:
+        if not isinstance(l, list):
+            res += [l]
+        else:
+            res += flatten(l)
+
+
+    return(res)
+
+
+
+
+def arrange_list(maliste,subs):
+    
+    if type(maliste[0]) is tuple:
+        istuple = True
+    else:
+        istuple = False
+        
+    
+    mybool = []
+    if istuple:
+        uniquewords = list(set([item[0] for item in maliste]))
+        for u in uniquewords:
+            idx = [idu for idu,item in enumerate(maliste) if item[0]==u]
+            mybool.append(idx)
+        L = []
+        for indices in mybool:
+            L.append([item for idi,item in enumerate(maliste) if idi in indices])
+
+        newmaliste = [item[0][0] for item in L]
+
+        newboolsubs = [idx for idx,item in enumerate(newmaliste) if item in subs]
+        newbooltarget = [idx for idx,item in enumerate(newmaliste) if item not in subs]
+        bigbool = [newboolsubs,newbooltarget]
+        final = []
+        for indices in bigbool:
+            final.append([item for idx,item in enumerate(L) if idx in indices])
+
+    else:
+        uniquewords = list(set(maliste))
+        for u in uniquewords:
+            idx = [idu for idu,item in enumerate(maliste) if item==u]
+            mybool.append(idx)
+        L = []
+        for indices in mybool:
+            L = L + [item for idi,item in enumerate(maliste) if idi in indices]
+
+        newmaliste = L
+
+        newboolsubs = [idx for idx,item in enumerate(newmaliste) if item in subs]
+        newbooltarget = [idx for idx,item in enumerate(newmaliste) if item not in subs]
+        bigbool = [newboolsubs,newbooltarget]
+        final = []
+        for indices in bigbool:
+            final.append([item for idx,item in enumerate(L) if idx in indices])
+
+    return final
+
+
+
+
+def correct_dic_results(runid,subs,all_setting_results): 
+    
+    d = {}
+    for k,v in all_setting_results[runid].items():
+        strate,value,idmodel = k.split("_")
+
+        if idmodel in d:
+            d[idmodel].append((strate,value))
+        else:
+            d[idmodel] = [(strate,value)]
+
+    x = {}
+    for k,v in d.items():
+        z = {}
+        for t in v:
+
+            split = t[1].split(".")
+            if split[0] in z:
+                if len(split)==1:
+                    z[split[0]].append(t[0])
+                else:
+                    z[split[0]].append((t[0],split[1]))
+            else:
+                if len(split)==1:
+                    z[split[0]] = [t[0]]
+                else:
+                    z[split[0]] = [(t[0],split[1])]
+
+        x[k] = z
+
+
+    for idrun,v in x.items():
+        for strate in v:
+            corrected = arrange_list(v[strate],subs)
+            v[strate] = corrected
+
+    return x
+
+
+
+
+
+def return_list_of_shared_datasets(g):
+    L = []
+    for k,v in g.items():
+        for j,y in v.items():
+            for m in y:
+                flatlist = flatten(m)
+                l = []
+                for f in flatlist:
+                    if type(f) is tuple:
+                        toadd1 = f[0]
+                        toadd2 = "."+f[1]
+                        mykey = toadd1 + "_" + j + toadd2 + "_" + k
+                    else:
+                        mykey = f + "_" + j + "_" + k
+                    l.append(mykey)
+                    L.append(l)
+    return L
