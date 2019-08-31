@@ -651,7 +651,7 @@ def produce_bigpred_bigresume(list_of_datasets,
             resumemodel = {"modelname" : modelname,
                            "name" : name,
                            "features" : features,
-                           "score" : abs(score),
+                           "score" : score,
                            "info" : info,
                            "param" : param,
                            "runid" : idrun,
@@ -694,14 +694,5 @@ def produce_bigpred_bigresume(list_of_datasets,
         bigpredictions.append(dffinal)
 
     bigresume = pd.DataFrame(bigresume)
-    bigresume = bigresume.reindex(["runid",
-                               "modelid",
-                               "score",
-                               "modelname",
-                               "name",
-                               "param",
-                               "info",
-                               "features"],
-                              axis = 1)
 
     return bigresume,bigpredictions

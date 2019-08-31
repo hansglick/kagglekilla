@@ -599,6 +599,9 @@ def correct_dic_results(runid,subs,all_setting_results):
 
 
 
+
+
+
 def return_list_of_shared_datasets(g):
     L = []
     for k,v in g.items():
@@ -613,6 +616,92 @@ def return_list_of_shared_datasets(g):
                         mykey = toadd1 + "_" + j + toadd2 + "_" + k
                     else:
                         mykey = f + "_" + j + "_" + k
+                    
+
                     l.append(mykey)
-                    L.append(l)
+                L.append(l)
+
     return L
+
+
+
+
+def produce_bigpred_bigresume(list_of_datasets,
+                              all_setting_results,
+                              idrun,
+                              build_train_test_for_model_parameters):
+
+    bigpredictions = []
+    bigresume = []
+    for idpred,pred in enumerate(list_of_datasets):
+        predictionslist = []
+        for idm,m in enumerate(pred):
+
+            # Dic Object Model
+            DOM = all_setting_results[idrun][m]
+
+            # ligne résumant le modele
+            modelname = DOM["typename"]
+            name = DOM["modelname"]
+            features = DOM["features"]
+            score = DOM["score"]
+            info = DOM["informations"]
+            param = DOM["model"].get_params()
+
+            resumemodel = {"modelname" : modelname,
+                           "name" : name,
+                           "features" : features,
+                           "score" : abs(score),
+                           "info" : info,
+                           "param" : param,
+                           "runid" : idrun,
+                           "modelid" : m}
+
+            bigresume.append(resumemodel)
+
+
+            # saving prédictions
+            taille = len(DOM["predictions"])
+            predictions = DOM["predictions"]
+            idpredictions = DOM["id_predictions"]
+            preddf = pd.concat((pd.Series(idpredictions),pd.Series(predictions)),axis=1)
+            preddf.columns = ["obsid","prediction"]
+            specific_strate = m.split("_")[0]
+            preddf["strate"] = specific_strate
+
+            # Range toutes les prédictions d'une subliste dans une liste
+            predictionslist.append(preddf)
+
+        predictionslist = pd.concat(predictionslist,axis = 0)
+
+        if np.all(pd.Series(build_train_test_for_model_parameters["target"]["subs"]).isin(predictionslist.strate.unique())):   
+            keya = build_train_test_for_model_parameters["target"]["subs"][0]
+            keyb = build_train_test_for_model_parameters["target"]["subs"][1]
+            filtrea = predictionslist.strate==keya
+            filtreb = predictionslist.strate==keyb
+            dfa = predictionslist[filtrea].sort_values(by=['obsid'])
+            dfb = predictionslist[filtreb].sort_values(by=['obsid'])
+            dffinal = dfa.obsid.to_frame(name="obsid")
+            dffinal["prediction"] = dfa.prediction + dfb.prediction
+        else:
+            dffinal = predictionslist.sort_values(by=['obsid']).drop(columns = ["strate"])
+
+
+
+        dffinal["runid"] = idrun
+        dffinal["predid"] = idpred
+        dffinal["groupmodel"] = "+".join(pred)
+        bigpredictions.append(dffinal)
+
+    bigresume = pd.DataFrame(bigresume)
+    bigresume = bigresume.reindex(["runid",
+                               "modelid",
+                               "score",
+                               "modelname",
+                               "name",
+                               "param",
+                               "info",
+                               "features"],
+                              axis = 1)
+
+    return bigresume,bigpredictions
